@@ -1,6 +1,7 @@
 FROM alpine:3
 CMD ["echo", "Hello World"]
 
+
 ############### 本番環境用
 
 # FROM rust AS planner
