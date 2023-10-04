@@ -30,13 +30,6 @@ COPY --from=builder /app/target/release/app /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/app"]
 EXPOSE 8080
 
-Create a new stage with a minimal image
-FROM scratch
-WORKDIR /app
-COPY --from=builder /app/target/release/app /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/app"]
-EXPOSE 8080
-
 ############### 開発環境用
 
 # FROM rust:1.70.0
