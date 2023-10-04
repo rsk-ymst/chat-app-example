@@ -50,7 +50,7 @@ jobs:
         push: true
         context: .
         # file: ./dockerfile
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/test:latest
+        tags: ${{ secrets.DOCKER_USERNAME }}/test:latest
 
         # set: |
         #   *.cache-from=type=gha
