@@ -52,9 +52,9 @@ jobs:
         file: ./dockerfile
         tags: ${{ secrets.DOCKER_USERNAME }}/test:latest
 
-        # set: |
-        #   *.cache-from=type=gha
-        #   *.cache-to=type=gha,mode=max
+        set: |
+          *.cache-from=type=gha
+          *.cache-to=type=gha,mode=max
 
   deploy:
     needs: build
