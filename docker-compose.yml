@@ -1,8 +1,8 @@
 version: '3'
 services:
   api:
+    image: jeytogo/chat:latest
     build:
-      image: jeytogo/chat
       context: .
       dockerfile: dockerfile
     # working_dir: /work

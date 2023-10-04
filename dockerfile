@@ -18,7 +18,7 @@ COPY . .
 COPY --from=cacher /app/target target
 RUN cargo build --release --bin app
 
-FROM debian:buster-slim AS runtime
+FROM ubuntu:buster-slim AS runtime
 COPY --from=builder /app/target/release/app /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/app"]
 EXPOSE 8080
