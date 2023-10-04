@@ -1,41 +1,41 @@
-# FROM alpine:3
-# CMD ["echo", "Hello World"]
+FROM alpine:3
+CMD ["echo", "Hello World"]
 
 
 ############### 本番環境用
 
-FROM rust AS planner
-WORKDIR /app
-COPY . .
-RUN cargo install cargo-chef
-RUN cargo chef prepare --recipe-path recipe.json
+# FROM rust AS planner
+# WORKDIR /app
+# COPY . .
+# RUN cargo install cargo-chef
+# RUN cargo chef prepare --recipe-path recipe.json
 
-FROM rust as cacher
-WORKDIR /app
-RUN cargo install cargo-chef
-COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+# FROM rust as cacher
+# WORKDIR /app
+# RUN cargo install cargo-chef
+# COPY --from=planner /app/recipe.json recipe.json
+# RUN cargo chef cook --release --recipe-path recipe.json
 
-FROM rust AS builder
-WORKDIR /app
-COPY . .
-COPY --from=cacher /app/target target
-RUN cargo build --release --bin app
+# FROM rust AS builder
+# WORKDIR /app
+# COPY . .
+# COPY --from=cacher /app/target target
+# RUN cargo build --release --bin app
 
 
-FROM debian:buster-slim AS runtime
+# FROM debian:buster-slim AS runtime
+# # FROM scratch
+# # WORKDIR /app
+# COPY --from=builder /app/target/release/app /usr/local/bin
+# ENTRYPOINT ["/usr/local/bin/app"]
+# EXPOSE 8080
+
+# Create a new stage with a minimal image
 # FROM scratch
 # WORKDIR /app
-COPY --from=builder /app/target/release/app /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/app"]
-EXPOSE 8080
-
-Create a new stage with a minimal image
-FROM scratch
-WORKDIR /app
-COPY --from=builder /app/target/release/app /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/app"]
-EXPOSE 8080
+# COPY --from=builder /app/target/release/app /usr/local/bin
+# ENTRYPOINT ["/usr/local/bin/app"]
+# EXPOSE 8080
 
 ############### 開発環境用
 
