@@ -2,10 +2,9 @@ use std::time::{Duration, Instant};
 
 use actix::prelude::*;
 use actix_web_actors::ws;
+use uuid::Uuid;
 
 use crate::server;
-
-mod game;
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -16,14 +15,14 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 #[derive(Debug)]
 pub struct WsChatSession {
     /// unique session id
-    pub id: usize,
+    pub id: Uuid,
 
     /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
     /// otherwise we drop connection.
     pub hb: Instant,
 
     /// joined room
-    pub room: String,
+    pub room: Uuid,
 
     /// peer name
     pub name: Option<String>,
@@ -98,7 +97,7 @@ impl Actor for WsChatSession {
             .into_actor(self)
             .then(|res, act, ctx| {
                 match res {
-                    Ok(res) => act.id = res,
+                    Ok(res) => act.id = Uuid::new_v4(),
                     // something is wrong with chat server
                     _ => ctx.stop(),
                 }
@@ -149,32 +148,48 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                 if m.starts_with('/') {
                     let v: Vec<&str> = m.splitn(2, ' ').collect();
                     match v[0] {
-                        "/list" => {
-                            // Send ListRooms message to chat server and wait for
-                            // response
-                            println!("List rooms");
-                            self.addr
-                                .send(server::ListRooms)
-                                .into_actor(self)
-                                .then(|res, _, ctx| {
-                                    match res {
-                                        Ok(rooms) => {
-                                            for room in rooms {
-                                                ctx.text(room);
-                                            }
-                                        }
-                                        _ => println!("Something is wrong"),
-                                    }
-                                    fut::ready(())
-                                })
-                                .wait(ctx)
-                            // .wait(ctx) pauses all events in context,
-                            // so actor wont receive any new messages until it get list
-                            // of rooms back
-                        }
+                        // "/list" => {
+                        //     // Send ListRooms message to chat server and wait for
+                        //     // response
+                        //     println!("List rooms");
+                        //     self.addr
+                        //         .send(server::ListRooms)
+                        //         .into_actor(self)
+                        //         .then(|res, _, ctx| {
+                        //             match res {
+                        //                 Ok(rooms) => {
+                        //                     for room in rooms {
+                        //                         ctx.text(room);
+                        //                     }
+                        //                 }
+                        //                 _ => println!("Something is wrong"),
+                        //             }
+                        //             fut::ready(())
+                        //         })
+                        //         .wait(ctx)
+                        //     // .wait(ctx) pauses all events in context,
+                        //     // so actor wont receive any new messages until it get list
+                        //     // of rooms back
+                        // }
+                        "/create" => {
+                            if v.len() == 2 {
+                                let x = Uuid::parse_str(v[1]).unwrap();
+                                
+                                self.room = x;
+                                self.addr.do_send(server::Join {
+                                    id: self.id,
+                                    name: self.room.clone(),
+                                });
+
+                                ctx.text("joined");
+                            } else {
+                                ctx.text("!!! room name is required");
+                            }
+                        },
                         "/join" => {
                             if v.len() == 2 {
-                                self.room = v[1].to_owned();
+                                let x = Uuid::parse_str(v[1]).unwrap();
+                                self.room = x;
                                 self.addr.do_send(server::Join {
                                     id: self.id,
                                     name: self.room.clone(),

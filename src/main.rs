@@ -13,13 +13,20 @@ use actix_web::{
 };
 use actix_web_actors::ws;
 use futures_util::StreamExt;
+use uuid::Uuid;
+
+use crate::auth::{ENTRY_ROOM_UUID};
 
 mod server;
 mod session;
+mod auth;
 
 async fn index() -> impl Responder {
     NamedFile::open_async("./static/index.html").await.unwrap()
 }
+
+// const ENTRY_ROOM: &'static [u8] = b"entry___________";
+
 
 /// Entry point for our websocket route
 async fn chat_route(
@@ -34,16 +41,16 @@ async fn chat_route(
     //     println!("{bytes:?}");
     // }
 
-    println!("req: {req:?}");
-    println!("srv: {srv:?}");
-    println!("srv: {:?}", Instant::now());
+    // println!("req: {req:?}");
+    // println!("srv: {srv:?}");
+    // println!("srv: {:?}", Instant::now());
 
 
     ws::start(
         session::WsChatSession {
-            id: 0,
+            id: Uuid::new_v4(),
             hb: Instant::now(),
-            room: "main".to_owned(),
+            room: *ENTRY_ROOM_UUID,
             name: None,
             addr: srv.get_ref().clone(),
         },
