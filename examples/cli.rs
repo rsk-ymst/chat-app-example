@@ -7,7 +7,7 @@ use std::thread;
 use websocket::client::ClientBuilder;
 use websocket::{Message, OwnedMessage};
 
-const CONNECTION: &'static str = "ws://159.223.193.84:8080/ws";
+const CONNECTION: &'static str = "ws://0.0.0.0:8080/ws";
 
 fn main() {
 	println!("Connecting to {}", CONNECTION);

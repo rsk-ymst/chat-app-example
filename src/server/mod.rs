@@ -6,12 +6,11 @@ use std::{
     }
 };
 
-mod game;
 pub mod handler;
 
 use actix::prelude::*;
 use uuid::Uuid;
-use handler::{Message, *};
+use handler::Message;
 
 use crate::auth::ENTRY_ROOM_UUID;
 
@@ -44,7 +43,6 @@ impl Room {
 
 impl ChatServer {
     pub fn new(visitor_count: Arc<AtomicUsize>) -> ChatServer {
-        // default room
         let mut rooms = HashMap::new();
 
         rooms.insert(*ENTRY_ROOM_UUID, Room::new(Uuid::nil()));
@@ -58,7 +56,6 @@ impl ChatServer {
 }
 
 impl ChatServer {
-    /// Send message to all users in the room
     fn send_message(&self, room_id: &Uuid, message: &str, skip_id: &Uuid) {
 
         if let Some(room) = self.rooms.get(room_id) {
@@ -75,9 +72,6 @@ impl ChatServer {
     }
 }
 
-/// Make actor from `ChatServer`
 impl Actor for ChatServer {
-    /// We are going to use simple Context, we just need ability to communicate
-    /// with other actors.
     type Context = Context<Self>;
 }

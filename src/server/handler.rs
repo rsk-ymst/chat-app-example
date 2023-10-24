@@ -1,11 +1,5 @@
 
-use std::{
-    collections::{HashMap, HashSet},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    }, process::id,
-};
+use std::sync:: atomic::Ordering;
 
 
 use actix::prelude::*;
@@ -15,7 +9,6 @@ use crate::auth::ENTRY_ROOM_UUID;
 
 use super::{ChatServer, Room};
 
-/// Chat server sends this messages to session
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Message(pub String);
@@ -39,9 +32,6 @@ impl Handler<ClientMessage> for ChatServer {
     }
 }
 
-/*============================
-     ルーム作成メッセージ
-==============================*/
 #[derive(Message)]
 #[rtype(Uuid)] // 戻り値の型
 pub struct Connect {
@@ -77,7 +67,6 @@ impl Handler<Connect> for ChatServer {
         MessageResult(user_entry_id)
     }
 }
-
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -155,7 +144,6 @@ impl Handler<ListRooms> for ChatServer {
     }
 }
 
-
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Join {
@@ -166,15 +154,12 @@ pub struct Join {
     pub room_id: Uuid,
 }
 
-/// Join room, send disconnect message to old room
-/// send join message to new room
 impl Handler<Join> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
         let Join { session_id, room_id } = msg;
 
-        // remove session from all rooms
         for (_n, room) in &mut self.rooms {
             println!("room {room:#?}");
             if room.sessions.remove(&session_id) {

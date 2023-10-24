@@ -73,7 +73,7 @@ async fn create_uuid_from_same_byte() -> Result<()> {
 
 #[tokio::test]
 async fn access_success() -> Result<()> {
-    let addr = format!("ws://0.0.0.0:8080/ws?user_id={}", &Uuid::new_v4().to_string());
+    let addr = format!("ws://0.0.0.0:8080/ws?user_id={}?user_name={}", &Uuid::new_v4().to_string(), "test");
 
 	let result = ClientBuilder::new(&addr).unwrap()
     .add_protocol("rust-websocket")

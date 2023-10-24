@@ -1,10 +1,10 @@
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 
 use actix::prelude::*;
 use actix_web_actors::ws;
 use uuid::Uuid;
 
-use crate::server::{*, self, handler::{Disconnect, ListRooms, Create, Join, ClientMessage, Message, Connect}};
+use crate::server::{handler::{ListRooms, Create, Join, ClientMessage, Message}};
 
 use super::WsChatSession;
 
@@ -92,7 +92,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         }
                         "/name" => {
                             if v.len() == 2 {
-                                self.user_name = Some(v[1].to_owned());
+                                self.user_name = v[1].to_owned();
                             } else {
                                 ctx.text("!!! name is required");
                             }
@@ -100,7 +100,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         _ => ctx.text(format!("!!! unknown command: {m:?}")),
                     }
                 } else {
-                    let msg = if let Some(ref name) = self.user_name {
+                    let msg = if let ref name = self.user_name {
                         format!("{name}: {m}")
                     } else {
                         m.to_owned()

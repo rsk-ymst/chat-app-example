@@ -4,7 +4,7 @@ use actix::prelude::*;
 use actix_web_actors::ws;
 use uuid::Uuid;
 
-use crate::server::{*, self, handler::{Disconnect, ListRooms, Create, Join, ClientMessage, Message, Connect}};
+use crate::server::{self, handler::{Disconnect, Connect}};
 
 mod handler;
 
@@ -16,9 +16,6 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug)]
 pub struct WsChatSession {
-    /// セッションID
-    // pub session_id: Uuid,
-
     /// ユーザID (セッションIDと同義)
     pub user_id: Uuid,
 
@@ -26,7 +23,7 @@ pub struct WsChatSession {
     pub room_id: Uuid,
 
     /// 参加者のユーザ名
-    pub user_name: Option<String>,
+    pub user_name: String,
 
     /// サーバのアドレス情報
     pub addr: Addr<server::ChatServer>,
