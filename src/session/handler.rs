@@ -69,7 +69,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 self.room_id = new_room_id;
 
                                 self.addr.do_send(Create {
-                                    user_id: self.user_id,
+                                    user_id: self.user_id.clone(),
                                     user_name: self.user_name.clone(),
                                     new_room_id
                                 });
@@ -86,7 +86,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 self.room_id = room_id;
 
                                 self.addr.do_send(Join {
-                                    user_id: self.user_id,
+                                    user_id: self.user_id.clone(),
                                     user_name: self.user_name.clone(),
                                     room_id,
                                 });
@@ -114,7 +114,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
 
                     // send message to chat server
                     self.addr.do_send(ClientMessage {
-                        id: self.user_id,
+                        user_id: self.user_id.clone(),
                         msg,
                         room: self.room_id.clone(),
                     })

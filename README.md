@@ -14,6 +14,7 @@ cargo run
 cargo run --example cli
 ```
 - Successfully connected と表示された段階で、無限ループの標準入力待機状態になる
+- 各クライアントには、ランダムに生成した32文字のIDと、5文字のnameが付与される
 
 
 ### 頻出コマンド

@@ -4,14 +4,20 @@ use std::io::stdin;
 use std::sync::mpsc::channel;
 use std::thread;
 
+use rand::distributions::{Alphanumeric, DistString};
 use uuid::Uuid;
 use websocket::client::ClientBuilder;
 use websocket::{Message, OwnedMessage};
 
 const CONNECTION: &'static str = "ws://0.0.0.0:8080/ws";
 
+
 fn main() {
-	let addr = format!("ws://0.0.0.0:8080/ws?user_id={}?user_name={}", &Uuid::new_v4().to_string(), "test");
+	let mut rng = rand::thread_rng();
+    let random_id = Alphanumeric.sample_string(&mut rng, 32);
+	let random_name = Alphanumeric.sample_string(&mut rng, 5);
+
+	let addr = format!("ws://0.0.0.0:8080/ws?user_id={}&user_name={}", &random_id, &random_name);
 	println!("Connecting to {}", addr);
 
 

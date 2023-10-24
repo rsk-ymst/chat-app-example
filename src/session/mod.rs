@@ -17,7 +17,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 #[derive(Debug)]
 pub struct WsChatSession {
     /// ユーザID (セッションIDと同義)
-    pub user_id: Uuid,
+    pub user_id: String,
 
     /// 参加中のルームID
     pub room_id: Uuid,
@@ -43,7 +43,7 @@ impl WsChatSession {
             if Instant::now().duration_since(act.hb_timestamp) > CLIENT_TIMEOUT {
                 println!("Websocket Client heartbeat failed, disconnecting!");
 
-                act.addr.do_send(Disconnect { id: act.user_id });
+                act.addr.do_send(Disconnect { user_id: act.user_id.clone() });
                 ctx.stop();
 
                 return;
@@ -66,7 +66,7 @@ impl Actor for WsChatSession {
         let addr = ctx.address();
         self.addr
             .send(Connect {
-                user_id: self.user_id,
+                user_id: self.user_id.clone(),
                 addr: addr.recipient(),
                 user_name: self.user_name.clone(),
             })
@@ -85,7 +85,7 @@ impl Actor for WsChatSession {
 
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
         // notify chat server
-        self.addr.do_send(Disconnect { id: self.user_id });
+        self.addr.do_send(Disconnect { user_id: self.user_id.clone() });
         Running::Stop
     }
 }

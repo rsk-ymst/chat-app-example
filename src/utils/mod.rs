@@ -2,7 +2,7 @@
 
 
 pub fn get_user_info_from_query(query: &str) -> Result<(String, String), actix_web::Error> {
-    let res = query.split("?").map(|x| {
+    let res = query.split("&").map(|x| {
         let x = x.split("=").collect::<Vec<&str>>();
         x.get(1).unwrap_or(&"0").to_string()
     }).collect::<Vec<String>>();

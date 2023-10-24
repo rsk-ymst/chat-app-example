@@ -33,13 +33,13 @@ async fn chat_route(
     srv: web::Data<Addr<server::ChatServer>>,
 ) -> Result<HttpResponse, actix_web::Error> {
 
-    let (recv_user_id, user_name) = get_user_info_from_query(req.query_string())?;
+    let (user_id, user_name) = get_user_info_from_query(req.query_string())?;
 
-    let user_id = Uuid::parse_str(&recv_user_id).map_err(
-        |_e| {
-            actix_web::error::ErrorBadRequest("failed parse user_id")
-        }
-    )?;
+    // let user_id = Uuid::parse_str(&recv_user_id).map_err(
+    //     |_e| {
+    //         actix_web::error::ErrorBadRequest("failed parse user_id")
+    //     }
+    // )?;
 
     let session = session::WsChatSession {
         user_id,
