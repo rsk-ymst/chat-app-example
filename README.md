@@ -1,40 +1,40 @@
-# Websocket chat example
+### デバッグ実行手順
+#### 0. 接続設定
+examples/cli.rs の対象アドレスを設定する
 
-This is a multi-threaded chat server example.
+#### 1. サーバを起動させる
+```
+cargo run
+```
 
-Fancy shiny features:
+#### 2. クライアントを起動
+別ターミナルウィンドウを用意し、
 
-- Browser-based WebSocket client served from static html+js
-- Chat server runs in separate thread
-- Tcp listener runs in separate thread
-- Application state is shared with the websocket server and a resource at `/count/`
-- Uses actors for improved readability of code in the server.rs implementation
-
-## Server
-
-1. Chat server listens for incoming tcp connections. Server can access several types of message:
-
-- `/list` - list all available rooms
-- `/join name` - join room, if room does not exist, create new one
-- `/name name` - set session name
-- `some message` - just string, send message to all peers in same room
-- client has to respond to heartbeat `Ping` messages, if server does not receive a heartbeat 'Pong' message for 10 seconds connection gets dropped
-
-2. [http://localhost:8080/count/](http://localhost:8080/count/) is a non-websocket endpoint and will affect and display state.
-
-To start server use command: `cargo run --bin websocket-chat-server`
-
-## WebSocket Browser Client
-
-Open url: [http://localhost:8080/](http://localhost:8080/)
-Use two tabs to set up a proper conversation.
-
-## Python Client using aiohttp
-
-Client connects to server. Reads input from stdin and sends to server.
-Fetch the needed python libraries `pip3 install --requirements requirements.txt`
-Then start client as `./client.py`
+```
+cargo run --example cli
+```
+- Successfully connected と表示された段階で、無限ループの標準入力待機状態になる
 
 
+### 頻出コマンド
 
- 
+#### 部屋作成
+```
+/create
+```
+- 送信者がオーナーとなるルームを作成する
+- 新しい部屋IDが返ってくる
+
+#### 入室
+```
+/join <room_id>
+```
+- 部屋にはいる
+
+### デバッグ用コマンド
+おそらくデバッグ時にしか使わないコマンド
+
+```
+/list
+```
+- 現在ある部屋とその作成者のリストを送信
