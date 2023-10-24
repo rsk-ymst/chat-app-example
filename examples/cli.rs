@@ -4,15 +4,18 @@ use std::io::stdin;
 use std::sync::mpsc::channel;
 use std::thread;
 
+use uuid::Uuid;
 use websocket::client::ClientBuilder;
 use websocket::{Message, OwnedMessage};
 
 const CONNECTION: &'static str = "ws://0.0.0.0:8080/ws";
 
 fn main() {
-	println!("Connecting to {}", CONNECTION);
+	let addr = format!("ws://0.0.0.0:8080/ws?user_id={}?user_name={}", &Uuid::new_v4().to_string(), "test");
+	println!("Connecting to {}", addr);
 
-	let client = ClientBuilder::new(CONNECTION)
+
+	let client = ClientBuilder::new(&addr)
 		.unwrap()
 		.add_protocol("rust-websocket")
 		.connect_insecure()

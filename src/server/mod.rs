@@ -70,6 +70,18 @@ impl ChatServer {
             }
         }
     }
+
+    fn send_message_to_one(&self, room_id: &Uuid, message: &str, target: &Uuid) {
+        if let Some(room) = self.rooms.get(room_id) {
+            for id in &room.sessions {
+                if *id == *target {
+                    if let Some(addr) = self.sessions.get(&id) {
+                        addr.do_send(Message(message.to_owned()));
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Actor for ChatServer {

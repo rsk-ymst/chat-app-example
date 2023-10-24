@@ -66,15 +66,12 @@ impl Actor for WsChatSession {
         let addr = ctx.address();
         self.addr
             .send(Connect {
+                user_id: self.user_id,
                 addr: addr.recipient(),
             })
             .into_actor(self)
             .then(|res, act, ctx| {
-                match res {
-                    Ok(res) => act.user_id = res,
-                    // something is wrong with chat server
-                    _ => ctx.stop(),
-                }
+
                 fut::ready(())
             })
             .wait(ctx);

@@ -3,6 +3,7 @@ use std::sync:: atomic::Ordering;
 
 
 use actix::prelude::*;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::auth::ENTRY_ROOM_UUID;
@@ -33,15 +34,30 @@ impl Handler<ClientMessage> for ChatServer {
 }
 
 #[derive(Message)]
-#[rtype(Uuid)] // 戻り値の型
+#[rtype(result = "()")] // 戻り値の型
 pub struct Connect {
+    pub user_id: Uuid,
     pub addr: Recipient<Message>,
 }
 
-impl Handler<Connect> for ChatServer {
-    type Result = MessageResult<Connect>;
+#[derive(Deserialize, Serialize, Debug)]
+pub struct RoomInfoDigest {
+    room_id: String,
+    users: Vec<UserDigest>
+}
 
-    fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
+#[derive(Deserialize, Serialize, Debug)]
+
+pub struct UserDigest {
+    user_id: String,
+    user_name: String,
+    is_owner: bool,
+}
+
+impl Handler<Connect> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: Connect, _: &mut Context<Self>) {
         println!("Someone joined");
 
         let dummy_id = Uuid::new_v4();
@@ -50,21 +66,41 @@ impl Handler<Connect> for ChatServer {
         self.send_message(&*ENTRY_ROOM_UUID, "Someone joined", &dummy_id);
 
         // Uuid生成
-        let user_entry_id = Uuid::new_v4();
-        self.sessions.insert(user_entry_id, msg.addr);
+        self.sessions.insert(msg.user_id, msg.addr);
 
         // エントリルームに追加
         self.rooms.entry(*ENTRY_ROOM_UUID).and_modify(|e| {
-            e.sessions.insert(user_entry_id);
+            e.sessions.insert(msg.user_id);
         });
 
-        let count = self.visitor_count.fetch_add(1, Ordering::SeqCst);
+        let x: Vec<RoomInfoDigest> = self.rooms.iter().map(|(id, room)| {
+            RoomInfoDigest {
+                room_id: id.to_string(),
+                users: room.sessions.iter().map(|user_id| {
+                    UserDigest {
+                        user_id: user_id.to_string(),
+                        user_name: String::from(""),
+                        is_owner: if *user_id == room.owner_id { true } else { false },
+                    }
+                }).collect()
+            }
+        }).collect();
 
-        self.send_message(&*ENTRY_ROOM_UUID, &format!("your session id: {user_entry_id}"), &dummy_id);
-        self.send_message(&*ENTRY_ROOM_UUID, &format!("Total visitors {count}"), &dummy_id);
-        self.send_message(&*ENTRY_ROOM_UUID, &format!("room status {:#?}", self.rooms), &dummy_id);
+        // for (Uuid, room) in self.rooms {
+        //     let room_info = vec![
+        //         RoomInfoDigest {
+        //             room_id: String::from(""),
+        //             users: Vec::new()
+        //         }
+        //     ];
+        // }
 
-        MessageResult(user_entry_id)
+
+        let json_string = serde_json::to_string(&x).unwrap();
+
+
+        self.send_message(&*ENTRY_ROOM_UUID, &format!("room status {:#?}", self.rooms), &Uuid::nil());
+        self.send_message_to_one(&*ENTRY_ROOM_UUID, &format!("{}", json_string), &msg.user_id);
     }
 }
 
