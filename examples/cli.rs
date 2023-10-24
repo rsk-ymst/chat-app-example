@@ -87,7 +87,7 @@ fn main() {
 					}
 				}
 				// Say what we received
-				_ => println!("Receive Loop: {:?}", message),
+				_ => println!("received: {:?}", message),
 			}
 		}
 	});

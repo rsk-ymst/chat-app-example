@@ -62,15 +62,20 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 .wait(ctx)
                         }
                         "/create" => {
-                            if v.len() == 2 {
-                                println!("yes!");
-                                let id = Uuid::parse_str(v[1]).unwrap();
+                            if v.len() == 1 {
+                                println!("create new room");
+
+                                let new_room_id = Uuid::new_v4();
+                                self.room_id = new_room_id;
 
                                 self.addr.do_send(Create {
-                                    id
+                                    user_id: self.user_id,
+                                    user_name: self.user_name.clone(),
+                                    new_room_id
                                 });
 
                                 ctx.text("created room successfully");
+                                ctx.text(format!("new room_id: {}", self.room_id));
                             } else {
                                 ctx.text("!!! room name is required");
                             }
@@ -81,8 +86,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 self.room_id = room_id;
 
                                 self.addr.do_send(Join {
-                                    session_id: self.user_id,
-                                    room_id
+                                    user_id: self.user_id,
+                                    user_name: self.user_name.clone(),
+                                    room_id,
                                 });
 
                                 ctx.text("joined");

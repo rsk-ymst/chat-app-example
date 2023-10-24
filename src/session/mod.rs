@@ -68,10 +68,16 @@ impl Actor for WsChatSession {
             .send(Connect {
                 user_id: self.user_id,
                 addr: addr.recipient(),
+                user_name: self.user_name.clone(),
             })
             .into_actor(self)
             .then(|res, act, ctx| {
-
+                match res {
+                    Ok(res) => {
+                        // act.addr = addr.recipient()
+                    }
+                    _ => ctx.stop(),
+                }
                 fut::ready(())
             })
             .wait(ctx);

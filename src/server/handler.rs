@@ -1,12 +1,9 @@
 
-use std::sync:: atomic::Ordering;
-
-
 use actix::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::auth::ENTRY_ROOM_UUID;
+use crate::{auth::ENTRY_ROOM_UUID, server::RoomUserInfo};
 
 use super::{ChatServer, Room};
 
@@ -37,69 +34,54 @@ impl Handler<ClientMessage> for ChatServer {
 #[rtype(result = "()")] // 戻り値の型
 pub struct Connect {
     pub user_id: Uuid,
+    pub user_name: String,
     pub addr: Recipient<Message>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct RoomInfoDigest {
     room_id: String,
-    users: Vec<UserDigest>
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-
-pub struct UserDigest {
-    user_id: String,
-    user_name: String,
-    is_owner: bool,
+    owner: RoomUserInfo,
+    users: Vec<RoomUserInfo>
 }
 
 impl Handler<Connect> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) {
-        println!("Someone joined");
+        println!("{} joined", msg.user_id);
 
         let dummy_id = Uuid::new_v4();
 
         // エントリルーム(サーバ選択画面)に参加したことを全体に通知
-        self.send_message(&*ENTRY_ROOM_UUID, "Someone joined", &dummy_id);
+        self.send_message(&*ENTRY_ROOM_UUID, &format!("{} joined", msg.user_name), &dummy_id);
 
-        // Uuid生成
         self.sessions.insert(msg.user_id, msg.addr);
 
         // エントリルームに追加
         self.rooms.entry(*ENTRY_ROOM_UUID).and_modify(|e| {
-            e.sessions.insert(msg.user_id);
+            e.users.insert(msg.user_id, RoomUserInfo::new(msg.user_id, msg.user_name.clone()));
         });
 
         let x: Vec<RoomInfoDigest> = self.rooms.iter().map(|(id, room)| {
             RoomInfoDigest {
                 room_id: id.to_string(),
-                users: room.sessions.iter().map(|user_id| {
-                    UserDigest {
+                owner: RoomUserInfo {
+                    user_id: msg.user_id.to_string(),
+                    user_name: msg.user_name.clone(),
+                },
+                users: room.users.iter().map(|(user_id, session)| {
+                    RoomUserInfo {
                         user_id: user_id.to_string(),
-                        user_name: String::from(""),
-                        is_owner: if *user_id == room.owner_id { true } else { false },
+                        user_name: session.user_name.clone(),
                     }
                 }).collect()
             }
         }).collect();
 
-        // for (Uuid, room) in self.rooms {
-        //     let room_info = vec![
-        //         RoomInfoDigest {
-        //             room_id: String::from(""),
-        //             users: Vec::new()
-        //         }
-        //     ];
-        // }
-
-
         let json_string = serde_json::to_string(&x).unwrap();
 
 
-        self.send_message(&*ENTRY_ROOM_UUID, &format!("room status {:#?}", self.rooms), &Uuid::nil());
         self.send_message_to_one(&*ENTRY_ROOM_UUID, &format!("{}", json_string), &msg.user_id);
     }
 }
@@ -119,15 +101,9 @@ impl Handler<Disconnect> for ChatServer {
 
         let mut rooms: Vec<String> = Vec::new();
 
-        // remove address
-        if self.sessions.remove(&msg.id).is_some() {
             // remove session from all rooms
-            for (name, room) in &mut self.rooms {
-                room.sessions.remove(&msg.id);
-                // if room.sessions.remove(&msg.id) {
-                //     // rooms.push(name.to_owned());
-                // }
-            }
+        for (room_id, room) in &mut self.rooms {
+            room.users.remove(&msg.id);
         }
     }
 }
@@ -136,8 +112,11 @@ impl Handler<Disconnect> for ChatServer {
 #[rtype(result = "()")]
 pub struct Create {
     /// Client ID
-    pub id: Uuid,
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub new_room_id: Uuid,
 }
+
 
 /* ルーム作成リクエストに対する処理 */
 impl Handler<Create> for ChatServer {
@@ -147,17 +126,18 @@ impl Handler<Create> for ChatServer {
 
         // 参加状態の部屋から退室
         for (_n, room) in &mut self.rooms {
-            if room.sessions.remove(&msg.id) {
-                println!("session removed from {room:#?}");
+            if let Some(x) = room.users.remove(&msg.user_id) {
+                println!("session removed {}", &msg.user_id);
             }
         }
 
         // 新規部屋を作成。作成者は自動的に新規部屋に入る
-        let mut new_room = Room::new(msg.id);
-        new_room.sessions.insert(msg.id);
+        let mut new_room = Room::new(msg.new_room_id, msg.user_id, msg.user_name.clone());
+        new_room.users.insert(msg.user_id, RoomUserInfo::new(msg.user_id, msg.user_name));
 
-        self.rooms.insert(msg.id, new_room);
+        self.rooms.insert(msg.new_room_id, new_room);
     }
+
 }
 
 pub struct ListRooms;
@@ -169,11 +149,11 @@ impl actix::Message for ListRooms {
 impl Handler<ListRooms> for ChatServer {
     type Result = MessageResult<ListRooms>;
 
-    fn handle(&mut self, msg: ListRooms, _: &mut Context<Self>)-> Self::Result {
+    fn handle(&mut self, _msg: ListRooms, _: &mut Context<Self>)-> Self::Result {
         let mut x = vec![];
 
         for (uuid, room) in &self.rooms {
-            x.push(uuid.to_string())
+            x.push(format!("{} by {}", uuid, room.owner.as_ref().unwrap().user_name));
         }
 
         MessageResult(x)
@@ -184,7 +164,9 @@ impl Handler<ListRooms> for ChatServer {
 #[rtype(result = "()")]
 pub struct Join {
     /// Client ID
-    pub session_id: Uuid,
+    pub user_id: Uuid,
+
+    pub user_name: String,
 
     /// Room name
     pub room_id: Uuid,
@@ -194,17 +176,18 @@ impl Handler<Join> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
-        let Join { session_id, room_id } = msg;
+        let Join { user_id, room_id, user_name } = msg;
 
         for (_n, room) in &mut self.rooms {
-            println!("room {room:#?}");
-            if room.sessions.remove(&session_id) {
-                println!("session removed");
+            if let Some(x) = room.users.remove(&msg.user_id) {
+                println!("session removed {}", &msg.user_id);
             }
         }
 
         self.rooms.entry(room_id).and_modify(|e| {
-            e.sessions.insert(session_id);
+            e.users.insert(user_id, RoomUserInfo::new(room_id, user_name.clone()));
         });
+
+        self.send_message(&room_id, &format!("{} joined", user_name), &Uuid::nil());
     }
 }
