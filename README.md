@@ -38,4 +38,16 @@ cargo run --example cli
 ```
 /list
 ```
-- 現在ある部屋とその作成者のリストを送信
+- 現在ある部屋とその作成者、部屋にいるユーザの一覧を送信
+- 以下のフォーマットになる
+```
+received: Text("865afdd4-855a-4360-81b5-5bf39dbe7b19 by l3jr3")
+received: Text("1: rYt647VckVrDHMqbRFX5ypYzaTmt91Xd, l3jr3")
+received: Text("656e7472-795f-5f5f-5f5f-5f5f5f5f5f5f by admin")
+received: Text("1: jm6hQVho9AHHZgjj6J2KTDFEsVrew4Or, Aq61e")
+received: Text("2: WSx3uSs8eCEoJ1DzyvFRwn03wpDTDKKV, N6yeI")
+```
+上記の場合、サーバには
+- l3jr3がつくった部屋, 865afdd4-855a-4360-81b5-5bf39dbe7b19
+- adminが作った部屋, 656e7472-795f-5f5f-5f5f-5f5f5f5f5f5f
+が存在し、各部屋にはl3jr3, Aq61eとN6yeIが部屋にいることを示す。

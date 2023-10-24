@@ -49,7 +49,7 @@ impl Handler<Connect> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) {
-        println!("{} joined", msg.user_id.clone());
+        println!("{}: {} joined", msg.user_id.clone(), msg.user_name.clone());
 
         let user_id = msg.user_id.clone();
 
@@ -154,6 +154,9 @@ impl Handler<ListRooms> for ChatServer {
 
         for (uuid, room) in &self.rooms {
             x.push(format!("{} by {}", uuid, room.owner.as_ref().unwrap().user_name));
+            room.users.iter().enumerate().for_each(|(i, (user_id, user_info))| {
+                x.push(format!("{}: {}, {}", i+1, user_id, user_info.user_name));
+            });
         }
 
         MessageResult(x)
