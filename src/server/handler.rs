@@ -82,7 +82,7 @@ impl Handler<Connect> for ChatServer {
         let json_string = serde_json::to_string(&x).unwrap();
 
 
-        self.send_message_to_one(&*ENTRY_ROOM_UUID, &format!("{}", json_string), user_id);
+        self.send_message_to_one(&*ENTRY_ROOM_UUID, &format!("/json {}", json_string), user_id);
     }
 }
 
