@@ -649,6 +649,7 @@ dependencies = [
  "log 0.4.20",
  "openssl",
  "rand 0.8.5",
+ "reqwest",
  "rustls",
  "serde",
  "serde_json",

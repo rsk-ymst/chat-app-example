@@ -46,6 +46,9 @@ websocket = "0.27.0"
 [dev-dependencies]
 anyhow = "1"
 httpc-test = "0.1.1"
+reqwest = "0.11"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [dependencies.uuid]
 version = "1.5.0"

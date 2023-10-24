@@ -3,17 +3,20 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
-    time::Instant,
+    time::Instant, fmt::Display
 };
 
 use actix::*;
 use actix_files::{Files, NamedFile};
+use actix_http::Error;
 use actix_web::{
-    middleware::Logger, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder,
+    middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use actix_web_actors::ws;
-use futures_util::StreamExt;
+use serde::Deserialize;
 use uuid::Uuid;
+use derive_more::{Display, Error};
+
 
 use crate::auth::{ENTRY_ROOM_UUID};
 
@@ -25,38 +28,52 @@ async fn index() -> impl Responder {
     NamedFile::open_async("./static/index.html").await.unwrap()
 }
 
-// const ENTRY_ROOM: &'static [u8] = b"entry___________";
+
+#[derive(Debug, Deserialize)]
+pub struct EntryParam {
+    pub user_id: String,
+}
+
+#[derive(Debug, Display, Error)]
+enum CustomError {
+    #[display(fmt = "internal error")]
+    InternalError,
+
+    #[display(fmt = "bad request")]
+    BadClientData,
+
+    #[display(fmt = "timeout")]
+    Timeout,
+
+    #[display(fmt = "timeout")]
+    UuidParseFailed,
+}
 
 
 /// Entry point for our websocket route
 async fn chat_route(
     req: HttpRequest,
     stream: web::Payload,
+    query: web::Query<EntryParam>,
     srv: web::Data<Addr<server::ChatServer>>,
-) -> Result<HttpResponse, Error> {
-    // while let Some(item) = stream.next().await {
-    //     let mut bytes = web::BytesMut::new();
+) -> Result<HttpResponse, actix_web::Error> {
+    println!("{query:#?}");
+    
+    let user_id = Uuid::parse_str(&query.user_id).map_err(
+        |_e| {
+            actix_web::error::ErrorBadRequest("failed parse user_id")
+        }
+    )?;
 
-    //     bytes.extend_from_slice(&item?);
-    //     println!("{bytes:?}");
-    // }
+    let session = session::WsChatSession {
+        user_id,
+        hb_timestamp: Instant::now(),
+        room_id: *ENTRY_ROOM_UUID,
+        user_name: None,
+        addr: srv.get_ref().clone(),
+    };
 
-    // println!("req: {req:?}");
-    // println!("srv: {srv:?}");
-    // println!("srv: {:?}", Instant::now());
-
-
-    ws::start(
-        session::WsChatSession {
-            id: Uuid::new_v4(),
-            hb: Instant::now(),
-            room: *ENTRY_ROOM_UUID,
-            name: None,
-            addr: srv.get_ref().clone(),
-        },
-        &req,
-        stream,
-    )
+    ws::start(session, &req, stream)
 }
 
 /// Entry point for our websocket route
