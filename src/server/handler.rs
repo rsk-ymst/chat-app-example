@@ -246,3 +246,38 @@ impl Handler<Ack> for ChatServer {
         }
     }
 }
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct AckCancel {
+    pub user_name: String,
+    pub user_id: String,
+    pub room_id: Uuid,
+}
+
+impl Handler<AckCancel> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: AckCancel, _: &mut Context<Self>) {
+        let AckCancel {user_id, user_name, room_id} = msg;
+
+        let room = self.rooms.get(&room_id).unwrap();
+
+        if room.max_cap == 0 {
+            log::warn!("[ACK_CANCEL] {}: room capacity not set", user_name);
+            return;
+        }
+
+        if !room.ack_stack.contains(&user_id) {
+            #[cfg(debug_assertions)]
+            log::warn!("[ACK_CANCEL] {}: not contained, cancel failed", user_name);
+            return;
+        }
+
+        self.rooms.entry(room_id).and_modify(|e| {
+            e.ack_stack.remove(&user_id);
+        });
+
+        log::debug!("[ACK_CANCEL] {}: canceled successfully ", user_name);
+    }
+}
