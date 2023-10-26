@@ -28,7 +28,7 @@ cargo run --example cli
 
 #### 入室
 ```
-/join <room_id>
+/join_room <room_id>
 ```
 - 部屋にはいる
 

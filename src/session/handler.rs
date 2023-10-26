@@ -81,7 +81,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 ctx.text("!!! room name is required");
                             }
                         }
-                        "/join" => {
+                        "/join_room" => {
                             if v.len() == 2 {
                                 let join_room_id = Uuid::parse_str(v[1]).unwrap();
                                 let current_room_id = self.room_id;
