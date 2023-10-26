@@ -50,4 +50,5 @@ received: Text("2: WSx3uSs8eCEoJ1DzyvFRwn03wpDTDKKV, N6yeI")
 上記の場合、サーバには
 - l3jr3がつくった部屋, 865afdd4-855a-4360-81b5-5bf39dbe7b19
 - adminが作った部屋, 656e7472-795f-5f5f-5f5f-5f5f5f5f5f5f
-が存在し、各部屋にはl3jr3, Aq61eとN6yeIが部屋にいることを示す。
+
+が存在し、各部屋にはそれぞれ`l3jr3`, `Aq61e`と`N6yeI`がいることを示す。
