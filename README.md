@@ -37,6 +37,11 @@ cargo run --example cli
 /ack
 ```
 - 進行の可否を承認する
+- ブロードキャストで以下のデータが返される
+
+```
+"/res_ack cOIxxPe5EvctIbY3hkUiEFI406ELAWq9"
+```
 
 #### ACKキャンセル
 ```
@@ -44,6 +49,12 @@ cargo run --example cli
 ```
 - 進行の可否の承認をキャンセルする
 - `ack_cancel` にしようかと思ったけど、タイポを防ぐために短くした
+- ブロードキャストで以下のデータが返される
+
+```
+"/res_rm_ack cOIxxPe5EvctIbY3hkUiEFI406ELAWq9"
+```
+
 
 #### シナリオ選択
 ```

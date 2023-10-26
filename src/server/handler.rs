@@ -283,10 +283,11 @@ impl Handler<Ack> for ChatServer {
         }
 
         self.rooms.entry(room_id).and_modify(|e| {
-            e.ack_stack.insert(user_id);
+            e.ack_stack.insert(user_id.clone());
         });
 
         log::info!("[ACK] {}: received successfully ", user_name);
+        self.send_message(&room_id, &format!("/res_ack {}", user_id), "".to_owned());
 
         let room = self.rooms.get(&room_id).unwrap();
         if room.ack_stack.len() >= room.max_cap {
@@ -335,6 +336,7 @@ impl Handler<AckCancel> for ChatServer {
             e.ack_stack.remove(&user_id);
         });
 
+        self.send_message(&room_id, &format!("/res_rm_ack {}", user_id), "".to_owned());
         log::info!("[ACK_CANCEL] {}: canceled successfully ", user_name);
     }
 }
@@ -346,7 +348,7 @@ pub struct SetNum {
     pub user_name: String,
     pub cap_number: usize,
 }
-
+ 
 impl Handler<SetNum> for ChatServer {
     type Result = ();
 
