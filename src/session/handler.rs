@@ -1,10 +1,12 @@
-use std::time::{Instant};
+use std::time::Instant;
 
 use actix::prelude::*;
 use actix_web_actors::ws;
 use uuid::Uuid;
 
-use crate::server::{handler::{ListRooms, Create, Join, ClientMessage, Message, Ack, AckCancel, SetNum}};
+use crate::server::handler::{
+    Ack, AckCancel, ClientMessage, Create, Join, ListRooms, Message, Scenario, SetNum,
+};
 
 use super::WsChatSession;
 
@@ -80,7 +82,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 user_id: self.user_id.clone(),
                                 user_name: self.user_name.clone(),
                                 current_room_id,
-                                new_room_id
+                                new_room_id,
                             });
 
                             ctx.text("created room successfully");
@@ -150,13 +152,28 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 cap_number,
                             });
                         }
+                        "/sce" => {
+                            if v.len() != 2 {
+                                ctx.text("error: expected arguments is 2");
+                                return;
+                            }
+
+                            let scenario_id: String = v[1].to_owned();
+
+                            self.addr.do_send(Scenario {
+                                user_id: self.user_id.to_string(),
+                                user_name: self.user_name.clone(),
+                                room_id: self.room_id,
+                                scenario_id,
+                            });
+                        }
                         _ => ctx.text(format!("!!! unknown command: {m:?}")),
                     }
 
                     return;
                 }
 
-                let msg =  m.to_owned();
+                let msg = m.to_owned();
 
                 // send message to chat server
                 self.addr.do_send(ClientMessage {

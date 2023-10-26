@@ -4,7 +4,10 @@ use actix::prelude::*;
 use actix_web_actors::ws;
 use uuid::Uuid;
 
-use crate::server::{self, handler::{Disconnect, Connect}};
+use crate::server::{
+    self,
+    handler::{Connect, Disconnect},
+};
 
 mod handler;
 
@@ -29,21 +32,20 @@ pub struct WsChatSession {
     pub addr: Addr<server::ChatServer>,
 
     /// 定期的にping/pongを行った時刻記録
-    pub hb_timestamp: Instant
+    pub hb_timestamp: Instant,
 }
-
 
 impl WsChatSession {
     /// 5秒ごとにpingを送り、死活状態を確認する (HEARTBEAT_INTERVAL).
     fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
-
-         // 5秒毎に永続稼動
+        // 5秒毎に永続稼動
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
-
             if Instant::now().duration_since(act.hb_timestamp) > CLIENT_TIMEOUT {
                 println!("Websocket Client heartbeat failed, disconnecting!");
 
-                act.addr.do_send(Disconnect { user_id: act.user_id.clone() });
+                act.addr.do_send(Disconnect {
+                    user_id: act.user_id.clone(),
+                });
                 ctx.stop();
 
                 return;
@@ -85,7 +87,9 @@ impl Actor for WsChatSession {
 
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
         // notify chat server
-        self.addr.do_send(Disconnect { user_id: self.user_id.clone() });
+        self.addr.do_send(Disconnect {
+            user_id: self.user_id.clone(),
+        });
         Running::Stop
     }
 }

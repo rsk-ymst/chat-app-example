@@ -1,18 +1,14 @@
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
-    sync::{
-        atomic::{AtomicUsize},
-        Arc,
-    }
+    sync::{atomic::AtomicUsize, Arc},
 };
-use serde::{Deserialize, Serialize};
-
 
 pub mod handler;
 
 use actix::prelude::*;
-use uuid::Uuid;
 use handler::Message;
+use uuid::Uuid;
 
 use crate::auth::ENTRY_ROOM_UUID;
 
@@ -64,12 +60,14 @@ impl Room {
     }
 }
 
-
 impl ChatServer {
     pub fn new(visitor_count: Arc<AtomicUsize>) -> ChatServer {
         let mut rooms = HashMap::new();
 
-        rooms.insert(*ENTRY_ROOM_UUID, Room::new(*ENTRY_ROOM_UUID, "admin_id".to_owned(), "admin".to_owned()));
+        rooms.insert(
+            *ENTRY_ROOM_UUID,
+            Room::new(*ENTRY_ROOM_UUID, "admin_id".to_owned(), "admin".to_owned()),
+        );
 
         ChatServer {
             sessions: HashMap::new(),
@@ -81,7 +79,6 @@ impl ChatServer {
 
 impl ChatServer {
     fn send_message(&self, room_id: &Uuid, message: &str, skip_id: String) {
-
         if let Some(room) = self.rooms.get(room_id) {
             for (id, session) in &room.users {
                 if *id == *skip_id {

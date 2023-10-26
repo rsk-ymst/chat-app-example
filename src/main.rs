@@ -3,23 +3,24 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
-    time::Instant
+    time::Instant,
 };
 
 use actix::*;
 use actix_web::{
-    middleware::Logger, web::{self}, App, HttpRequest, HttpResponse, HttpServer, Responder,
+    middleware::Logger,
+    web::{self},
+    App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use actix_web_actors::ws;
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::{auth::ENTRY_ROOM_UUID, utils::get_user_info_from_query};
 
-use crate::{auth::{ENTRY_ROOM_UUID}, utils::get_user_info_from_query};
-
+mod auth;
 mod server;
 mod session;
-mod auth;
 mod utils;
 
 #[derive(Debug, Deserialize)]
@@ -33,7 +34,6 @@ async fn chat_route(
     stream: web::Payload,
     srv: web::Data<Addr<server::ChatServer>>,
 ) -> Result<HttpResponse, actix_web::Error> {
-
     let (user_id, user_name) = get_user_info_from_query(req.query_string())?;
 
     // let user_id = Uuid::parse_str(&recv_user_id).map_err(
@@ -60,9 +60,12 @@ async fn get_count(count: web::Data<AtomicUsize>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
     // ログ出力の設定
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info").default_filter_or("debug"));
+    env_logger::init_from_env(
+        env_logger::Env::new()
+            .default_filter_or("info")
+            .default_filter_or("debug"),
+    );
 
     // チャットサーバのアクタ生成
     let app_state = Arc::new(AtomicUsize::new(0));
