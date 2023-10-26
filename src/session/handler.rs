@@ -180,6 +180,16 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 scenario_id,
                             });
                         }
+                        "/me" => {
+                            if v.len() != 1 {
+                                ctx.text("error: expected arguments is 1");
+                                return;
+                            }
+
+                            ctx.text(format!("user_id: {}", self.user_id));
+                            ctx.text(format!("user_name: {}", self.user_name));
+                            ctx.text(format!("in room: {}", self.room_id));
+                        }
                         _ => ctx.text(format!("!!! unknown command: {m:?}")),
                     }
 
