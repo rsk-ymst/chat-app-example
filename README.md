@@ -45,6 +45,27 @@ cargo run --example cli
 - 進行の可否の承認をキャンセルする
 - `ack_cancel` にしようかと思ったけど、タイポを防ぐために短くした
 
+#### シナリオ選択
+```
+/sce <scenario_id>
+```
+- ブロードキャストで以下のデータが返される
+
+```
+"/res_sce {\"scenario_id\":\"656e7472-795f-5f5f-5f5f-5f5f5f5f5f5f\",\"proposer\":{\"user_id\":\"JxonjEGjuUkkjbz5G62GZ8uq1c4a3b1C\",\"user_name\":\"O9QUH\"}}"
+```
+
+#### シナリオ選択入出
+```
+/join_sce <scenario_id>
+```
+
+- ブロードキャストで以下のデータが返される
+
+```
+"/res_join_sce {\"scenario_id\":\"656e7472-795f-5f5f-5f5f-5f5f5f5f5f5f\",\"participant\":{\"user_id\":\"O72DCIxYwjSuX2n6qfSe4HFVwiIrQWDs\",\"user_name\":\"5FaUb\"}}"
+```
+
 #### 部屋のプレイヤー人数指定
 ```
 /set_num <player_num>
