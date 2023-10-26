@@ -306,7 +306,6 @@ impl Handler<SetNum> for ChatServer {
             e.max_cap = cap_number;
         });
 
-
         log::debug!("[SET_NUM] {}: set player number: {}", user_name, cap_number);
     }
 }

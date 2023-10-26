@@ -2,7 +2,6 @@ use std::time::{Instant};
 
 use actix::prelude::*;
 use actix_web_actors::ws;
-use log::Level;
 use uuid::Uuid;
 
 use crate::server::{handler::{ListRooms, Create, Join, ClientMessage, Message, Ack, AckCancel, SetNum}};
@@ -44,6 +43,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                     let v: Vec<&str> = m.splitn(2, ' ').collect();
                     match v[0] {
                         "/list" => {
+                            if v.len() != 1 {
+                                ctx.text("error: expected arguments is 1");
+                                return;
+                            }
+
                             // response
                             println!("List rooms");
                             self.addr
@@ -63,50 +67,57 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 .wait(ctx)
                         }
                         "/create" => {
-                            if v.len() == 1 {
-                                let new_room_id = Uuid::new_v4();
-                                let current_room_id = self.room_id.clone();
-                                self.room_id = new_room_id;
-
-                                self.addr.do_send(Create {
-                                    user_id: self.user_id.clone(),
-                                    user_name: self.user_name.clone(),
-                                    current_room_id,
-                                    new_room_id
-                                });
-
-                                ctx.text("created room successfully");
-                                ctx.text(format!("new room_id: {}", self.room_id));
-                            } else {
-                                ctx.text("!!! room name is required");
+                            if v.len() != 1 {
+                                ctx.text("error: expected arguments is 1");
+                                return;
                             }
+
+                            let new_room_id = Uuid::new_v4();
+                            let current_room_id = self.room_id.clone();
+                            self.room_id = new_room_id;
+
+                            self.addr.do_send(Create {
+                                user_id: self.user_id.clone(),
+                                user_name: self.user_name.clone(),
+                                current_room_id,
+                                new_room_id
+                            });
+
+                            ctx.text("created room successfully");
+                            ctx.text(format!("new room_id: {}", self.room_id));
                         }
                         "/join_room" => {
-                            if v.len() == 2 {
-                                let join_room_id = Uuid::parse_str(v[1]).unwrap();
-                                let current_room_id = self.room_id;
-
-                                self.room_id = join_room_id;
-
-                                self.addr.do_send(Join {
-                                    user_id: self.user_id.clone(),
-                                    user_name: self.user_name.clone(),
-                                    current_room_id,
-                                    join_room_id,
-                                });
-
-                            } else {
-                                ctx.text("!!! room name is required");
+                            if v.len() != 2 {
+                                ctx.text("error: expected arguments is 2");
+                                return;
                             }
+
+                            let join_room_id = Uuid::parse_str(v[1]).unwrap();
+                            let current_room_id = self.room_id;
+
+                            self.room_id = join_room_id;
+
+                            self.addr.do_send(Join {
+                                user_id: self.user_id.clone(),
+                                user_name: self.user_name.clone(),
+                                current_room_id,
+                                join_room_id,
+                            });
                         }
                         "/name" => {
-                            if v.len() == 2 {
-                                self.user_name = v[1].to_owned();
-                            } else {
-                                ctx.text("!!! name is required");
+                            if v.len() != 1 {
+                                ctx.text("error: expected arguments is 1");
+                                return;
                             }
+
+                            self.user_name = v[1].to_owned();
                         }
                         "/ack" => {
+                            if v.len() != 1 {
+                                ctx.text("error: expected arguments is 1");
+                                return;
+                            }
+
                             self.addr.do_send(Ack {
                                 user_name: self.user_name.clone(),
                                 room_id: self.room_id,
@@ -114,6 +125,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             });
                         }
                         "/rm_ack" => {
+                            if v.len() != 1 {
+                                ctx.text("error: expected arguments is 1");
+                                return;
+                            }
+
                             self.addr.do_send(AckCancel {
                                 user_name: self.user_name.clone(),
                                 room_id: self.room_id,
@@ -121,6 +137,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             });
                         }
                         "/set_num" => {
+                            if v.len() != 2 {
+                                ctx.text("error: expected arguments is 1");
+                                return;
+                            }
+
                             let cap_number: usize = v[1].parse::<usize>().unwrap();
 
                             self.addr.do_send(SetNum {
@@ -131,18 +152,19 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         }
                         _ => ctx.text(format!("!!! unknown command: {m:?}")),
                     }
-                } else {
 
-                    let msg =  m.to_owned();
-
-                    // send message to chat server
-                    self.addr.do_send(ClientMessage {
-                        user_id: self.user_id.clone(),
-                        user_name: self.user_name.clone(),
-                        msg,
-                        room: self.room_id.clone(),
-                    })
+                    return;
                 }
+
+                let msg =  m.to_owned();
+
+                // send message to chat server
+                self.addr.do_send(ClientMessage {
+                    user_id: self.user_id.clone(),
+                    user_name: self.user_name.clone(),
+                    msg,
+                    room: self.room_id.clone(),
+                })
             }
             ws::Message::Binary(_) => println!("Unexpected binary"),
             ws::Message::Close(reason) => {
