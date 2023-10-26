@@ -4,9 +4,7 @@ use actix::prelude::*;
 use actix_web_actors::ws;
 use uuid::Uuid;
 
-use crate::server::handler::{
-    Ack, AckCancel, ClientMessage, Create, Join, ListRooms, Message, Scenario, SetNum,
-};
+use crate::server::handler::{Ack, AckCancel, ClientMessage, Create, Join, JoinScenario, ListRooms, Message, Scenario, SetNum};
 
 use super::WsChatSession;
 
@@ -161,6 +159,21 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             let scenario_id: String = v[1].to_owned();
 
                             self.addr.do_send(Scenario {
+                                user_id: self.user_id.to_string(),
+                                user_name: self.user_name.clone(),
+                                room_id: self.room_id,
+                                scenario_id,
+                            });
+                        }
+                        "/join_sce" => {
+                            if v.len() != 2 {
+                                ctx.text("error: expected arguments is 2");
+                                return;
+                            }
+
+                            let scenario_id: String = v[1].to_owned();
+
+                            self.addr.do_send(JoinScenario {
                                 user_id: self.user_id.to_string(),
                                 user_name: self.user_name.clone(),
                                 room_id: self.room_id,

@@ -205,14 +205,12 @@ impl Handler<ListRooms> for ChatServer {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Join {
-    /// Client ID
     pub user_id: String,
 
     pub user_name: String,
 
     pub current_room_id: Uuid,
 
-    /// Room name
     pub join_room_id: Uuid,
 }
 
@@ -399,8 +397,6 @@ impl Handler<Scenario> for ChatServer {
             proposer: RoomUserInfo { user_id: user_id.clone(), user_name: user_name.clone() },
         };
 
-        let room = self.rooms.get(&room_id).unwrap();
-
         self.rooms.entry(room_id).and_modify(|e| {
             e.ack_stack.clear();
             e.ack_stack.insert(user_id.clone());
@@ -408,6 +404,62 @@ impl Handler<Scenario> for ChatServer {
 
         let json_string = serde_json::to_string(&ret).unwrap();
 
-        self.send_message(&room_id, &format!("/sce {}", json_string), "".to_owned());
+        self.send_message(&room_id, &format!("/res_sce {}", json_string), "".to_owned());
+    }
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct JoinScenario {
+    pub room_id: Uuid,
+    pub user_id: String,
+    pub user_name: String,
+    pub scenario_id: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct JoinScenarioRet {
+    scenario_id: String,
+    participant: RoomUserInfo,
+}
+
+impl Handler<JoinScenario> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: JoinScenario, _: &mut Context<Self>) {
+        let JoinScenario {
+            room_id,
+            user_id,
+            user_name,
+            scenario_id,
+        } = msg;
+
+        if self.rooms.get(&room_id).unwrap().ack_stack.contains(&user_id) {
+            log::warn!("[JOIN_SCENARIO] {}: already joined", user_name);
+            return;
+        }
+
+        log::debug!("[JOIN_SCENARIO] {}: join {}", user_name.clone(), scenario_id);
+
+        self.rooms.entry(room_id).and_modify(|e| {
+            e.ack_stack.insert(user_id.clone());
+        });
+
+        let ret = JoinScenarioRet {
+            scenario_id,
+            participant: RoomUserInfo { user_id: user_id.clone(), user_name: user_name.clone() },
+        };
+        let json_string = serde_json::to_string(&ret).unwrap();
+        self.send_message(&room_id, &format!("/res_join_sce {}", json_string), "".to_owned());
+
+        let room = self.rooms.get(&room_id).unwrap();
+        if room.ack_stack.len() >= room.max_cap {
+            log::info!("[CONFIRM_SCENARIO] : all member joined!");
+            self.send_message(&room_id, "/confirm_sce", "".to_owned());
+
+            self.rooms.entry(room_id).and_modify(|e| {
+                e.ack_stack.clear();
+            });
+        }
     }
 }
