@@ -87,7 +87,7 @@ impl Handler<Connect> for ChatServer {
         }).collect();
 
         let json_string = serde_json::to_string(&x).unwrap();
-
+        log::info!("[CONNECT] {}: join entry room", msg.user_name.clone());
 
         self.send_message_to_one(&*ENTRY_ROOM_UUID, &format!("/json {}", json_string), user_id);
     }
@@ -121,6 +121,7 @@ pub struct Create {
     /// Client ID
     pub user_id: String,
     pub user_name: String,
+    pub current_room_id: Uuid,
     pub new_room_id: Uuid,
 }
 
@@ -134,13 +135,15 @@ impl Handler<Create> for ChatServer {
         // 参加状態の部屋から退室
         for (_n, room) in &mut self.rooms {
             if let Some(_) = room.users.remove(&msg.user_id) {
-                println!("session removed {}", &msg.user_id);
+                log::info!("[EXIT] {}: exit from {}", msg.user_name.clone(), msg.current_room_id);
             }
         }
 
         // 新規部屋を作成。作成者は自動的に新規部屋に入る
         let mut new_room = Room::new(msg.new_room_id, msg.user_id.clone(), msg.user_name.clone());
-        new_room.users.insert(msg.user_id.clone(), RoomUserInfo::new(msg.user_id, msg.user_name));
+        new_room.users.insert(msg.user_id.clone(), RoomUserInfo::new(msg.user_id, msg.user_name.clone()));
+
+        log::info!("[CREATE] {}: {}, join the room", msg.user_name.clone(), msg.new_room_id);
 
         self.rooms.insert(msg.new_room_id, new_room);
     }
@@ -178,27 +181,31 @@ pub struct Join {
 
     pub user_name: String,
 
+    pub current_room_id: Uuid,
+
     /// Room name
-    pub room_id: Uuid,
+    pub join_room_id: Uuid,
 }
 
 impl Handler<Join> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
-        let Join { user_id, room_id, user_name } = msg;
+        let Join { user_id, current_room_id, join_room_id, user_name } = msg;
 
         for (_n, room) in &mut self.rooms {
-            if let Some(x) = room.users.remove(&user_id.clone()) {
-                println!("session removed {}", &user_id.clone());
+            if let Some(_) = room.users.remove(&user_id.clone()) {
+                log::info!("[EXIT] {}: exit from {}", user_name.clone(), current_room_id);
             }
         }
 
-        self.rooms.entry(room_id).and_modify(|e| {
+        self.rooms.entry(join_room_id).and_modify(|e| {
             e.users.insert(user_id.clone(), RoomUserInfo::new(user_id, user_name.clone()));
         });
 
-        self.send_message(&room_id, &format!("{} joined", user_name), "".to_owned());
+        log::info!("[JOIN] {}: in {}", user_name.clone(), join_room_id);
+
+        self.send_message(&join_room_id, &format!("{} joined", user_name), "".to_owned());
     }
 }
 
@@ -224,8 +231,7 @@ impl Handler<Ack> for ChatServer {
         }
 
         if room.ack_stack.contains(&user_id) {
-            #[cfg(debug_assertions)]
-            log::warn!("[ACK] {}: already acked, push cancel", user_name);
+            log::warn!("[ACK] {}: already acked, cancel push", user_name);
             return;
         }
 
@@ -233,11 +239,11 @@ impl Handler<Ack> for ChatServer {
             e.ack_stack.insert(user_id);
         });
 
-        log::debug!("[ACK] {}: received successfully ", user_name);
+        log::info!("[ACK] {}: received successfully ", user_name);
 
         let room = self.rooms.get(&room_id).unwrap();
         if room.ack_stack.len() >= room.max_cap {
-            log::debug!("[CONFIRM] : all ack complete!");
+            log::info!("[CONFIRM] : all ack complete!");
             self.send_message(&room_id, "/confirm", "".to_owned());
 
             self.rooms.entry(room_id).and_modify(|e| {
