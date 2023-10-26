@@ -5,7 +5,7 @@ use actix_web_actors::ws;
 use log::Level;
 use uuid::Uuid;
 
-use crate::server::{handler::{ListRooms, Create, Join, ClientMessage, Message, Ack, AckCancel}};
+use crate::server::{handler::{ListRooms, Create, Join, ClientMessage, Message, Ack, AckCancel, SetNum}};
 
 use super::WsChatSession;
 
@@ -118,6 +118,15 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 user_name: self.user_name.clone(),
                                 room_id: self.room_id,
                                 user_id: self.user_id.clone(),
+                            });
+                        }
+                        "/set_num" => {
+                            let cap_number: usize = v[1].parse::<usize>().unwrap();
+
+                            self.addr.do_send(SetNum {
+                                user_name: self.user_name.clone(),
+                                room_id: self.room_id,
+                                cap_number,
                             });
                         }
                         _ => ctx.text(format!("!!! unknown command: {m:?}")),

@@ -284,6 +284,29 @@ impl Handler<AckCancel> for ChatServer {
             e.ack_stack.remove(&user_id);
         });
 
-        log::debug!("[ACK_CANCEL] {}: canceled successfully ", user_name);
+        log::info!("[ACK_CANCEL] {}: canceled successfully ", user_name);
+    }
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct SetNum {
+    pub room_id: Uuid,
+    pub user_name: String,
+    pub cap_number: usize,
+}
+
+impl Handler<SetNum> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: SetNum, _: &mut Context<Self>) {
+        let SetNum {room_id, user_name, cap_number} = msg;
+
+        let room = self.rooms.entry(room_id).and_modify(|e| {
+            e.max_cap = cap_number;
+        });
+
+
+        log::debug!("[SET_NUM] {}: set player number: {}", user_name, cap_number);
     }
 }
