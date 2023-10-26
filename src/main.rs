@@ -14,6 +14,7 @@ use actix_web_actors::ws;
 use serde::Deserialize;
 use uuid::Uuid;
 
+
 use crate::{auth::{ENTRY_ROOM_UUID}, utils::get_user_info_from_query};
 
 mod server;
@@ -59,12 +60,12 @@ async fn get_count(count: web::Data<AtomicUsize>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    // サーバへの総訪問ユーザ数
+    // ログ出力の設定
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info").default_filter_or("debug"));
+
+    // チャットサーバのアクタ生成
     let app_state = Arc::new(AtomicUsize::new(0));
-
-    // チャットサーバのアクタ
     let server = server::ChatServer::new(app_state.clone()).start();
 
     log::info!("starting HTTP server at http://0.0.0.0:8080");
@@ -75,7 +76,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(server.clone()))
             .route("/count", web::get().to(get_count))
             .route("/ws", web::get().to(chat_route))
-            .wrap(Logger::default())
+            .wrap(Logger::default()) // ミドルウェア設定
     })
     .workers(2)
     .bind(("0.0.0.0", 8080))?

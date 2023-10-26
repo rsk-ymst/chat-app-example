@@ -28,7 +28,9 @@ pub struct Room {
     pub room_id: Uuid,
     pub owner: Option<RoomUserInfo>,
     pub users: HashMap<String, RoomUserInfo>,
-    pub parent_room_id: Option<Uuid>, // 親ルームのID. 密談部屋ルーム作成時に必要
+    pub parent_room_id: Option<Uuid>, // 親ルームのID. 密談部屋の作成時に必要
+    pub ack_stack: HashSet<String>,
+    pub max_cap: usize, // 最大収容人数 = ゲームを遊ぶ人数
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -56,6 +58,8 @@ impl Room {
                 user_id: user_id.to_string(),
                 user_name,
             }),
+            ack_stack: HashSet::new(),
+            max_cap: 3,
         }
     }
 }

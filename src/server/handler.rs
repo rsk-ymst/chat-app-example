@@ -1,5 +1,8 @@
 
+use std::collections::HashSet;
+
 use actix::prelude::*;
+use log::info;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -16,6 +19,9 @@ pub struct Message(pub String);
 pub struct ClientMessage {
     /// Id of the client session
     pub user_id: String,
+
+    pub user_name: String,
+
     /// Peer message
     pub msg: String,
     /// Room name
@@ -26,6 +32,7 @@ impl Handler<ClientMessage> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: ClientMessage, _: &mut Context<Self>) {
+        log::debug!("[MESSAGE] {}: {}", msg.user_name , msg.msg.clone());
         self.send_message(&msg.room, msg.msg.as_str(), msg.user_id);
     }
 }
@@ -49,7 +56,7 @@ impl Handler<Connect> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) {
-        println!("{}: {} joined", msg.user_id.clone(), msg.user_name.clone());
+        info!("{}: {} joined", msg.user_id.clone(), msg.user_name.clone());
 
         let user_id = msg.user_id.clone();
 
@@ -192,5 +199,50 @@ impl Handler<Join> for ChatServer {
         });
 
         self.send_message(&room_id, &format!("{} joined", user_name), "".to_owned());
+    }
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct Ack {
+    pub user_name: String,
+    pub user_id: String,
+    pub room_id: Uuid,
+}
+
+impl Handler<Ack> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: Ack, _: &mut Context<Self>) {
+        let Ack {user_id, user_name, room_id} = msg;
+
+        let room = self.rooms.get(&room_id).unwrap();
+
+        if room.max_cap == 0 {
+            println!("room capacity not set");
+            return;
+        }
+
+        if room.ack_stack.contains(&user_id) {
+            #[cfg(debug_assertions)]
+            log::warn!("[ACK] {}: already acked, push cancel", user_name);
+            return;
+        }
+
+        self.rooms.entry(room_id).and_modify(|e| {
+            e.ack_stack.insert(user_id);
+        });
+
+        log::debug!("[ACK] {}: received successfully ", user_name);
+
+        let room = self.rooms.get(&room_id).unwrap();
+        if room.ack_stack.len() >= room.max_cap {
+            log::debug!("[CONFIRM] : all ack complete!");
+            self.send_message(&room_id, "/confirm", "".to_owned());
+
+            self.rooms.entry(room_id).and_modify(|e| {
+                e.ack_stack.clear();
+            });
+        }
     }
 }

@@ -2,9 +2,10 @@ use std::time::{Instant};
 
 use actix::prelude::*;
 use actix_web_actors::ws;
+use log::Level;
 use uuid::Uuid;
 
-use crate::server::{handler::{ListRooms, Create, Join, ClientMessage, Message}};
+use crate::server::{handler::{ListRooms, Create, Join, ClientMessage, Message, Ack}};
 
 use super::WsChatSession;
 
@@ -27,7 +28,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
             Ok(msg) => msg,
         };
 
-        log::debug!("WEBSOCKET MESSAGE: {msg:?}");
+        // log::debug!("WEBSOCKET MESSAGE: {msg:?}");
         match msg {
             ws::Message::Ping(msg) => {
                 self.hb_timestamp = Instant::now();
@@ -103,18 +104,23 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 ctx.text("!!! name is required");
                             }
                         }
+                        "/ack" => {
+                            self.addr.do_send(Ack {
+                                user_name: self.user_name.clone(),
+                                room_id: self.room_id,
+                                user_id: self.user_id.clone(),
+                            });
+                        }
                         _ => ctx.text(format!("!!! unknown command: {m:?}")),
                     }
                 } else {
-                    let msg = if let ref name = self.user_name {
-                        format!("{name}: {m}")
-                    } else {
-                        m.to_owned()
-                    };
+
+                    let msg =  m.to_owned();
 
                     // send message to chat server
                     self.addr.do_send(ClientMessage {
                         user_id: self.user_id.clone(),
+                        user_name: self.user_name.clone(),
                         msg,
                         room: self.room_id.clone(),
                     })
