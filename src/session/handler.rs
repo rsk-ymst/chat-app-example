@@ -4,7 +4,7 @@ use actix::prelude::*;
 use actix_web_actors::ws;
 use uuid::Uuid;
 
-use crate::server::handler::{Ack, AckCancel, ClientMessage, Create, Join, JoinScenario, ListRooms, Message, Scenario, SetNum};
+use crate::server::handler::{Ack, AckCancel, ClientMessage, Create, Join, JoinScenario, ListRooms, Message, Scenario, SetNum, Hand};
 
 use super::WsChatSession;
 
@@ -40,7 +40,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                 let m = text.trim();
 
                 if m.starts_with('/') {
-                    let v: Vec<&str> = m.splitn(2, ' ').collect();
+                    let v: Vec<&str> = m.splitn(3, ' ').collect();
                     match v[0] {
                         "/list" => {
                             if v.len() != 1 {
@@ -189,6 +189,23 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                             ctx.text(format!("user_id: {}", self.user_id));
                             ctx.text(format!("user_name: {}", self.user_name));
                             ctx.text(format!("in room: {}", self.room_id));
+                        }
+                        "/hand" => {
+                            if v.len() != 3 {
+                                ctx.text("error: expected arguments is 3");
+                                return;
+                            }
+
+                            let item_id: String = v[1].to_owned();
+                            let dst_user_id: String = v[2].to_owned();
+
+                            self.addr.do_send(Hand {
+                                src_user_id: self.user_id.to_string(),
+                                user_name: self.user_name.clone(),
+                                dst_user_id,
+                                room_id: self.room_id,
+                                item_id,
+                            });
                         }
                         _ => ctx.text(format!("!!! unknown command: {m:?}")),
                     }

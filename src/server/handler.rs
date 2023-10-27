@@ -100,9 +100,8 @@ impl Handler<Connect> for ChatServer {
         log::info!("[CONNECT] {}: join entry room", msg.user_name.clone());
 
         self.send_message_to_one(
-            &*ENTRY_ROOM_UUID,
             &format!("/json {}", json_string),
-            user_id,
+            &user_id,
         );
     }
 }
@@ -348,7 +347,7 @@ pub struct SetNum {
     pub user_name: String,
     pub cap_number: usize,
 }
- 
+
 impl Handler<SetNum> for ChatServer {
     type Result = ();
 
@@ -463,5 +462,39 @@ impl Handler<JoinScenario> for ChatServer {
                 e.ack_stack.clear();
             });
         }
+    }
+}
+
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct Hand {
+    pub room_id: Uuid,
+    pub src_user_id: String,
+    pub user_name: String,
+    pub dst_user_id: String,
+    pub item_id: String,
+}
+
+impl Handler<Hand> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: Hand, _: &mut Context<Self>) {
+        let Hand {
+            room_id,
+            src_user_id,
+            user_name,
+            dst_user_id,
+            item_id,
+        } = msg;
+
+        if self.rooms.get(&room_id).unwrap().users.get(&dst_user_id).is_none() {
+            self.send_message_to_one( &format!("/err target is not exist"), &src_user_id);
+            log::warn!("[HAND] {}: target is not exist ", &user_name);
+            return;
+        }
+
+        log::debug!("[HAND] {}: hand {} to {}", &user_name ,&item_id, &dst_user_id);
+
+        self.send_message_to_one(&format!("/hand_recv {} {}", item_id ,&src_user_id), &dst_user_id);
     }
 }

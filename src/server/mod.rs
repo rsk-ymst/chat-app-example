@@ -92,15 +92,9 @@ impl ChatServer {
         }
     }
 
-    fn send_message_to_one(&self, room_id: &Uuid, message: &str, target: String) {
-        if let Some(room) = self.rooms.get(room_id) {
-            for (user_id, RoomUserInfo) in &room.users {
-                if *user_id == *target {
-                    if let Some(addr) = self.sessions.get(&*user_id) {
-                        addr.do_send(Message(message.to_owned()));
-                    }
-                }
-            }
+    fn send_message_to_one(&self, message: &str, target_id: &str) {
+        if let Some(addr) = self.sessions.get(target_id) {
+            addr.do_send(Message(message.to_owned()));
         }
     }
 }
